@@ -1,8 +1,8 @@
 export const CONFIG = {
-  appName: "Nexus",
+  appName: "XYZ",
   tagline: "Build the Future, Today.",
   description:
-    "An AI-powered solution tackling the world's most pressing data challenges. Built for the Global Innovation Hackathon 2024.",
+    "An AI-powered solution tackling the world's most pressing data challenges. Built for Oodo Hackathon 2025.",
   theme: {
     primary: "from-violet-600 to-indigo-600",
     accent: "text-violet-400",
@@ -33,8 +33,9 @@ export const CONFIG = {
     },
   ],
   team: [
-    { name: "Alex Dev", role: "Full Stack", github: "#" },
-    { name: "Sarah AI", role: "ML Engineer", github: "#" },
-    { name: "Jordan UI", role: "Designer", github: "#" },
+    { name: "Omar Sharieff", role: "Full Stack", github: "#" },
+    { name: "Usman Bokhari", role: "UI/UX Designer", github: "#" },
+    { name: "Ivanna", role: "Backend Developer", github: "#" },
+    { name: "Fahad", role: "idk", github: "#" },
   ],
 };
