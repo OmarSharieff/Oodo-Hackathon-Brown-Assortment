@@ -222,6 +222,7 @@ export default function App() {
      ============================================================= */
   const AppDashboard = () => (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+      <nav>This is a giberrish navbar dude</nav>
       
       {/* Sidebar */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex">
