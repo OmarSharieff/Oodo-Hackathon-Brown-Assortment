@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Github, Twitter } from 'lucide-react';
-import { config } from '../config';
+import { config } from '../config/site.js';
 import { Navbar } from '../components/layout/Navbar';
 
 export default function LandingPage({ setView }) {

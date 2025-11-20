@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layout, Zap, Settings, LogOut, User, Code } from 'lucide-react';
-import { config } from '../config';
+import { config } from '../config/site.js';
 
 export default function Dashboard({ setView }) {
   return (
