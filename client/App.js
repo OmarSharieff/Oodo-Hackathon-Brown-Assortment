@@ -11,10 +11,12 @@ import {
   Platform,
 } from "react-native";
 
+import * as ImagePicker from "expo-image-picker";
+
 export default function App() {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
-  const [imageUploaded, setImageUploaded] = useState(false);
+  const [image, setImage] = useState(null);   // <-- Stores real selected image
   const [imageHeight, setImageHeight] = useState(200);
   const [location, setLocation] = useState("");
 
@@ -22,8 +24,6 @@ export default function App() {
   const starColor = "#f4d171";
 
   const uploadIcon = require("./assets/upload_icon.png");
-  const stockImage = require("./assets/stock_image.png");
-
   const { width: screenWidth } = Dimensions.get("window");
   const contentPadding = 40;
 
@@ -34,22 +34,30 @@ export default function App() {
   const ratingFontSize = maxRatingFont * scaleFactor;
   const starFontSize = maxStarFont * scaleFactor;
 
-  useEffect(() => {
-    if (imageUploaded) {
-      Image.getSize(
-        Image.resolveAssetSource(stockImage).uri,
-        (width, height) => {
-          const ratio = (screenWidth - contentPadding) / width;
-          setImageHeight(height * ratio);
-        },
-        (error) => console.error("Failed to get image size:", error)
-      );
+  // 🟡---- OPEN GALLERY AND SELECT IMAGE ----
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const selected = result.assets[0];
+      setImage(selected.uri);
+
+      // dynamically adjust height
+      Image.getSize(selected.uri, (width, height) => {
+        const ratio = (screenWidth - contentPadding) / width;
+        setImageHeight(height * ratio);
+      });
     }
-  }, [imageUploaded]);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
+
         {/* Small Heading */}
         <Text style={styles.heading}>Post Review</Text>
 
@@ -63,10 +71,7 @@ export default function App() {
           {Array.from({ length: totalStars }).map((_, index) => {
             const starNumber = index + 1;
             return (
-              <TouchableOpacity
-                key={index}
-                onPress={() => setRating(starNumber)}
-              >
+              <TouchableOpacity key={index} onPress={() => setRating(starNumber)}>
                 <Text
                   style={[
                     styles.star,
@@ -92,23 +97,18 @@ export default function App() {
           onChangeText={setReview}
         />
 
-        {/* Row: Upload button + Location Search */}
+        {/* Row: Upload button + Search bar */}
         <View style={styles.rowContainer}>
-          {!imageUploaded && (
+          {!image && (
             <TouchableOpacity
               style={[styles.uploadButton, styles.uploadShadow]}
-              onPress={() => setImageUploaded(true)}
+              onPress={pickImage}
             >
               <Image source={uploadIcon} style={styles.uploadIcon} />
             </TouchableOpacity>
           )}
 
-          <View
-            style={[
-              styles.inputWrapper,
-              !imageUploaded && { marginLeft: 10 },
-            ]}
-          >
+          <View style={[styles.inputWrapper, !image && { marginLeft: 10 }]}>
             <TextInput
               style={styles.locationInput}
               placeholder="Search location..."
@@ -119,7 +119,7 @@ export default function App() {
         </View>
 
         {/* Uploaded Image */}
-        {imageUploaded && (
+        {image && (
           <View
             style={[
               { marginTop: 10, width: screenWidth - contentPadding },
@@ -127,18 +127,18 @@ export default function App() {
             ]}
           >
             <Image
-              source={stockImage}
-              style={[
-                styles.uploadedImage,
-                {
-                  width: screenWidth - contentPadding,
-                  height: imageHeight,
-                },
-              ]}
+              source={{ uri: image }}
+              style={{
+                width: screenWidth - contentPadding,
+                height: imageHeight,
+                borderRadius: 10,
+              }}
             />
+
+            {/* Remove Button */}
             <TouchableOpacity
               style={styles.removeButton}
-              onPress={() => setImageUploaded(false)}
+              onPress={() => setImage(null)}
             >
               <Text style={styles.removeButtonText}>Remove</Text>
             </TouchableOpacity>
@@ -157,6 +157,7 @@ export default function App() {
   );
 }
 
+// ---- STYLES ----
 const styles = StyleSheet.create({
   scrollContainer: {
     paddingVertical: 50,
@@ -251,6 +252,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: "100%",
   },
+
   uploadedImageWrapper: {
     ...Platform.select({
       ios: {
@@ -263,9 +265,6 @@ const styles = StyleSheet.create({
         elevation: 5,
       },
     }),
-  },
-  uploadedImage: {
-    borderRadius: 10,
   },
   removeButton: {
     position: "absolute",
@@ -280,6 +279,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
   },
+
   publishButton: {
     marginTop: 20,
     backgroundColor: "#f4d171",
