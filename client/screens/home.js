@@ -62,9 +62,9 @@ function formatLikes(num) {
   }).format(num);
 }
 
-const PostCard = ({ item, onPress, expanded = false, onToggleLike }) => (
+const PostCard = ({ item, onPress, style, expanded = false, onToggleLike }) => (
   <TouchableOpacity disabled={!onPress} onPress={onPress} activeOpacity={0.8}>
-    <View style={styles.post}>
+    <View style={style}>
       {/* ... (PostHeader and other views are the same) ... */}
       <View style={styles.postHeader}>
         <View style={styles.leftGroup}>
@@ -262,6 +262,7 @@ const fetchPosts = async () => {
         renderItem={({ item }) => (
           <PostCard 
             item={item} 
+            style={styles.post}
             onPress={() => setSelectedPost(item)} 
             onToggleLike={toggleLike} // Pass the handler to PostCard
           />
@@ -276,10 +277,7 @@ const fetchPosts = async () => {
     <View style={styles.homeContainer}>
         <View style={styles.header}>
             <Text style={styles.headerTitle}>Recent Activity</Text>
-                <TouchableOpacity style={styles.button} 
-                onPress={() => alert('Header button pressed!')}>
-                <Text style={styles.buttonText}>Friends</Text>
-        </TouchableOpacity>
+              
         </View>
         {/* Feed */}
         {renderContent()}
@@ -298,7 +296,7 @@ const fetchPosts = async () => {
               <PostCard 
                 item={selectedPost} 
                 expanded={true} 
-                style={{ width: '100%' }}  
+                style={styles.postModal}  
                 onToggleLike={toggleLike} // Pass the handler to modal PostCard
               />
             )}
@@ -327,19 +325,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: .3,       // 👈 line divider
     borderBottomColor: '#ccc',  // 👈 divider color
   },
-button: {
-    backgroundColor: '#f4d171',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  buttonText: {
-    color: '#333',
-    fontWeight: 'bold',
-  },
-  title: {
+
+  headerTitle: {
     //justifyContent: 'flex-end',
     fontFamily: 'Montserrat-Bold',
     fontSize: 24,
@@ -452,6 +439,21 @@ heart: {
   height: 18,
   width: 18,
 },
+
+postModal: {
+  backgroundColor: '#fff',
+  overflow: 'hidden',
+  borderWidth: .2,  
+  borderColor: '#ccc', 
+  shadowColor: '#000',
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 2,
+  padding: 13,
+  //width: '100%'
+
+},
+
 modalBackground: {
   flex: 1,
   backgroundColor: 'rgba(0,0,0,0.5)', // blurred/dim background
