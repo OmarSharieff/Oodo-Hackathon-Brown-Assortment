@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, TouchableOpacity, FlatList, Image} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import NavigationBar from '../components/navigationBar';
 //    ### post:
 // - image
 // - id int Pk
@@ -37,7 +39,22 @@ const posts = [
     description: 'Enjoying the hackathon vibes!',
   },
 ];
+ const toggleLike = (id) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post.id === id
+          ? {
+              ...post,
+              liked: !post.liked,
+              likes: post.liked ? post.likes - 1 : post.likes + 1,
+            }
+          : post
+      )
+    );
+  };
+
 export default function HomeScreen({ navigation }) {
+
     const renderPost = ({item}) => (
         <View style={styles.post}>
             <View style = {styles.postHeader}>
@@ -60,8 +77,8 @@ export default function HomeScreen({ navigation }) {
                     key={index}
                     source={
                         index < item.rating
-                        ? require('../assets/star_pressed.png')        // filled star
-                        : require('../assets/star.png') // empty star
+                        ? require('../assets/star_pressed.png')        
+                        : require('../assets/star.png') 
                     }
                     style={styles.star}
                     />
@@ -75,13 +92,23 @@ export default function HomeScreen({ navigation }) {
        
         <View style={styles.postFooter}>
             <View style={styles.likesContainer}>
-                <Image source={require('../assets/heart_pressed.png')} style={styles.heart} resizeMode="contain" />
+                 <TouchableOpacity onPress={() => toggleLike(item.id)}>
+                  <Image
+                    source={
+                      item.liked
+                        ? require('../assets/heart_pressed.png')
+                        : require('../assets/heart.png')
+                    }
+                    style={styles.heart}
+                    resizeMode="contain"
+                  />
+              </TouchableOpacity>
                 <Text style={styles.likesText}>{item.likes}</Text>
             </View>
             <Text
                 style={styles.description}
-                numberOfLines={item.image ? 1 : 4}   // 👈 conditional lines
-                ellipsizeMode="tail"                 // adds "..." if truncated
+                numberOfLines={item.image ? 1 : 4}   
+                ellipsizeMode="tail"                 
             >
                 {item.description}
               </Text>
@@ -89,6 +116,7 @@ export default function HomeScreen({ navigation }) {
         </View>
     );
   return (
+    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
     <View style={styles.homeContainer}>
         <View style={styles.header}>
             <Text style={styles.headerTitle}>Recent Activity</Text>
@@ -104,9 +132,9 @@ export default function HomeScreen({ navigation }) {
         renderItem={renderPost}
         contentContainerStyle={styles.feedContainer}
       />
-
-        <View style={styles.footer}></View>
+      <NavigationBar></NavigationBar>
     </View>
+    </SafeAreaView>
   );
 }
 
@@ -125,11 +153,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     padding: 20,
     //backgroundColor: '#ffffffff',
-    borderBottomWidth: 1,       // 👈 line divider
+    borderBottomWidth: .3,       // 👈 line divider
     borderBottomColor: '#ccc',  // 👈 divider color
   },
 button: {
-    backgroundColor: '#ffebb4',
+    backgroundColor: '#f4d171',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -148,6 +176,10 @@ button: {
     color: '#333',
   },
 
+  feedContainer: {
+
+  },
+
   userImg: {
     width: 30,
     height: 30,
@@ -155,14 +187,17 @@ button: {
   },
   post: {
     backgroundColor: '#fff',
-    marginBottom: 20,
-    borderRadius: 10,
+    //marginBottom: 20,
+    //borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: .2,  
+    borderColor: '#ccc', 
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
     padding: 13
+    
   },
 
   postHeader: {
