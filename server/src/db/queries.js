@@ -1,4 +1,5 @@
 import supabase from "./index.js";
+import { getBoundingBox, filterLocationsByDistance } from "../utils/geoUtils.js";
 
 /* =========================================================
    USERS / AUTH
@@ -6,14 +7,12 @@ import supabase from "./index.js";
 
 // SIGN UP — using Supabase Auth + users table insertion
 export async function signUp(email, password, name) {
-  // Create auth user
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
   });
   if (authError) throw authError;
 
-  // Insert profile in users table - let Supabase auto-generate the ID
   const { data: userData, error } = await supabase
     .from("users")
     .insert({
@@ -25,7 +24,6 @@ export async function signUp(email, password, name) {
   
   if (error) throw error;
 
-  // Return both auth user and database user ID
   return {
     ...authData.user,
     db_user_id: userData.id
@@ -58,7 +56,14 @@ export async function getUserById(user_id) {
 ========================================================= */
 
 // ADD LOCATION
-export async function addLocation({ latitude, longitude, halal = false, crowded = false, hotspot = false }) {
+export async function addLocation({ 
+  latitude, 
+  longitude, 
+  halal = false, 
+  crowded = false, 
+  hotspot = false,
+  near_greenery = false  // NEW FIELD
+}) {
   const { data, error } = await supabase
     .from("locations")
     .insert({
@@ -67,6 +72,7 @@ export async function addLocation({ latitude, longitude, halal = false, crowded 
       halal,
       crowded,
       hotspot,
+      near_greenery
     })
     .select()
     .single();
@@ -88,6 +94,98 @@ export async function findLocation(latitude, longitude) {
   return data;
 }
 
+// GET NEARBY HOTSPOT LOCATIONS (GREEN AREAS ONLY)
+export async function getNearbyGreenHotspots(latitude, longitude, radiusKm = 5, limit = 20) {
+  const bbox = getBoundingBox(latitude, longitude, radiusKm);
+  
+  // Query locations that are hotspots AND near greenery
+  const { data, error } = await supabase
+    .from("locations")
+    .select("*")
+    .eq("hotspot", true)
+    .eq("near_greenery", true)  // Filter for green areas only
+    .gte("latitude", bbox.minLat.toString())
+    .lte("latitude", bbox.maxLat.toString())
+    .gte("longitude", bbox.minLon.toString())
+    .lte("longitude", bbox.maxLon.toString());
+
+  if (error) throw error;
+
+  const nearbyLocations = filterLocationsByDistance(
+    data,
+    latitude,
+    longitude,
+    radiusKm
+  );
+
+  return nearbyLocations.slice(0, limit);
+}
+
+// GET NEARBY HOTSPOT LOCATIONS
+export async function getNearbyHotspots(latitude, longitude, radiusKm = 5, limit = 20) {
+  const bbox = getBoundingBox(latitude, longitude, radiusKm);
+  
+  const { data, error } = await supabase
+    .from("locations")
+    .select("*")
+    .eq("hotspot", true)
+    .gte("latitude", bbox.minLat.toString())
+    .lte("latitude", bbox.maxLat.toString())
+    .gte("longitude", bbox.minLon.toString())
+    .lte("longitude", bbox.maxLon.toString());
+
+  if (error) throw error;
+
+  const nearbyLocations = filterLocationsByDistance(
+    data,
+    latitude,
+    longitude,
+    radiusKm
+  );
+
+  return nearbyLocations.slice(0, limit);
+}
+
+// GET NEARBY LOCATIONS (all types, not just hotspots)
+export async function getNearbyLocations(latitude, longitude, radiusKm = 5, limit = 20, filters = {}) {
+  const bbox = getBoundingBox(latitude, longitude, radiusKm);
+  
+  let query = supabase
+    .from("locations")
+    .select("*")
+    .gte("latitude", bbox.minLat.toString())
+    .lte("latitude", bbox.maxLat.toString())
+    .gte("longitude", bbox.minLon.toString())
+    .lte("longitude", bbox.maxLon.toString());
+
+  // Apply optional filters
+  if (filters.near_greenery !== undefined) {
+    query = query.eq("near_greenery", filters.near_greenery);
+  }
+  if (filters.halal !== undefined) {
+    query = query.eq("halal", filters.halal);
+  }
+  if (filters.crowded !== undefined) {
+    query = query.eq("crowded", filters.crowded);
+  }
+  if (filters.hotspot !== undefined) {
+    query = query.eq("hotspot", filters.hotspot);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  const nearbyLocations = filterLocationsByDistance(
+    data,
+    latitude,
+    longitude,
+    radiusKm
+  );
+
+  return nearbyLocations.slice(0, limit);
+}
+
 /* =========================================================
    POSTS / REVIEWS
 ========================================================= */
@@ -101,15 +199,12 @@ export async function addReview({
   latitude,
   longitude,
 }) {
-  // 1. Try to find the location
   let location = await findLocation(latitude, longitude);
 
-  // 2. Create location if not found
   if (!location) {
     location = await addLocation({ latitude, longitude });
   }
 
-  // 3. Add post with location ID
   const { data, error } = await supabase
     .from("posts")
     .insert({
@@ -143,7 +238,7 @@ export async function getPosts(page = 1, limit = 10) {
       rating,
       likes,
       user:users(id, name, image_id),
-      location:locations(id, latitude, longitude)
+      location:locations(id, latitude, longitude, near_greenery)
     `
     )
     .order("created_at", { ascending: false })
@@ -210,19 +305,17 @@ export async function getFriends(user_id, page = 1, limit = 20) {
 ========================================================= */
 
 export async function getHottestLocations(limit = 10) {
-  // Get posts with location info, then count in JS
   const { data, error } = await supabase
     .from("posts")
     .select(
       `
       location_id,
-      locations(id, latitude, longitude)
+      locations(id, latitude, longitude, near_greenery)
     `
     );
 
   if (error) throw error;
 
-  // Count posts per location
   const locationCounts = {};
   data.forEach(post => {
     if (post.location_id) {
@@ -236,7 +329,6 @@ export async function getHottestLocations(limit = 10) {
     }
   });
 
-  // Convert to array and sort
   const sorted = Object.values(locationCounts)
     .sort((a, b) => b.count - a.count)
     .slice(0, limit);
