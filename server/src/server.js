@@ -1,18 +1,12 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import userRoutes from './routes/user.routes.js';
 import postRoutes from './routes/post.routes.js';
 import locationRoutes from './routes/location.routes.js';
-// import cookieParser from 'cookie-parser';
-
-
-// dotenv.config({
-//     path: '../.env'
-// });
-
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -46,4 +40,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-export { app };
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`📍 API endpoints available at http://localhost:${PORT}/api`);
+  console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+});
