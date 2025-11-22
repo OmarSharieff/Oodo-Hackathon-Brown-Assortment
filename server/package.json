@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/app.js"
   },
   "author": "Omar, Ivanna, Usman, Fahad",
   "license": "ISC",
