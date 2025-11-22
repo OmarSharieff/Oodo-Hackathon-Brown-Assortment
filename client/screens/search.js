@@ -7,7 +7,7 @@ import NavigationBar from '../components/navigationBar';
 
 // Backend URL - Updated for physical device testing
 // Use localhost for simulator, WiFi IP for physical device
-const API_URL = 'http://10.30.64.172:3000';
+const API_URL = 'https://a66c310b8089.ngrok-free.app';
 
 export default function SearchScreen({ navigation }) {
   const [location, setLocation] = useState(null);
