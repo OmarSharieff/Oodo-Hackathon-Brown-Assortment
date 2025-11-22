@@ -1,19 +1,41 @@
 import express from 'express';
-import cookieParser from 'cookie-parser';
-import cors from "cors";
-
+import cors from 'cors';
+import userRoutes from './routes/user.routes.js';
+import postRoutes from './routes/post.routes.js';
+import locationRoutes from './routes/location.routes.js';
 
 const app = express();
 
-app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    credentials: true,
-}))
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use(express.json({ limit: '16kb' }));
-app.use(express.urlencoded({ extended: true, limit: '16kb' }));
-app.use(express.static('public'));
+// Health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
 
-app.use(cookieParser());
+// API Routes
+app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/locations', locationRoutes);
 
-export {app}
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error'
+  });
+});
+
+export { app };
