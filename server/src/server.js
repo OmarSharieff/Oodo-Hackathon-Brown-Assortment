@@ -4,6 +4,8 @@ import cors from 'cors';
 import userRoutes from './routes/user.routes.js';
 import postRoutes from './routes/post.routes.js';
 import locationRoutes from './routes/location.routes.js';
+import eventRoutes from './routes/event.routes.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +24,7 @@ app.get('/health', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/events', eventRoutes);
 
 // 404 handler
 app.use((req, res) => {
