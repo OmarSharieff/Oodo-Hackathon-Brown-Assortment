@@ -1,24 +1,31 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+// Import Screens
 import HomeScreen from './screens/home.js';
-//import { SafeAreaView } from 'react-native-safe-area-context';
+import SearchScreen from './screens/search.js';
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-
-    <View style={styles.container}>
-      <HomeScreen />
+    <NavigationContainer>
+      <Stack.Navigator 
+        initialRouteName="Search" // 👈 This sets the Map page as the first screen
+        screenOptions={{ 
+          headerShown: false, 
+          animation: 'fade'
+        }}
+      >
+        <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+        
+        {/* Placeholders for other screens */}
+        <Stack.Screen name="Notifications" component={HomeScreen} />
+        <Stack.Screen name="Profile" component={HomeScreen} />
+      </Stack.Navigator>
       <StatusBar style="auto" />
-    </View>
-   
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
