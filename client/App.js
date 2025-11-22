@@ -31,6 +31,8 @@ function AppStack() {
         return <HomeScreen />;
       case 'Events':
         return <EventsScreen />;
+      case 'Map':
+        return <SearchScreen/>;
       default:
         return <HomeScreen />;
     }

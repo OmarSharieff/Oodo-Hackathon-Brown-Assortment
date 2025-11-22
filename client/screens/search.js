@@ -165,7 +165,7 @@ export default function SearchScreen({ navigation }) {
 
         {/* Navigation Bar */}
         <View style={styles.navContainer}>
-          <NavigationBar navigation={navigation} />
+          
         </View>
       </View>
     </SafeAreaView>
