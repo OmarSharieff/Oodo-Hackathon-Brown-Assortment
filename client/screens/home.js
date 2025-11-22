@@ -53,7 +53,7 @@ const posts = [
     );
   };
 const PostCard = ({ item, onPress, expanded = false }) => (
-  <TouchableOpacity disabled={!onPress} onPress={onPress}>
+  <TouchableOpacity disabled={!onPress} onPress={onPress} activeOpacity={0.8}>
     <View style={styles.post}>
       <View style={styles.postHeader}>
         <View style={styles.leftGroup}>
@@ -162,7 +162,7 @@ export default function HomeScreen({ navigation }) {
         <Pressable style={styles.modalBackground} onPress={() => setSelectedPost(null)}>
           <View style={styles.modalContent}>
             {selectedPost && (
-              <PostCard item={selectedPost} expanded={true} style={styles.modalPost} />
+              <PostCard item={selectedPost} expanded={true} style={{ width: '100%' }}  />
             )}
           </View>
         </Pressable>
@@ -323,9 +323,8 @@ modalBackground: {
 },
 modalContent: {
   backgroundColor: '#fff',
-  padding: 20,
   borderRadius: 10,
-  width: '90%',
+  width: '95%',
   maxHeight: '80%',       // keep modal from covering entire screen
   alignItems: 'stretch',
 },
