@@ -1,25 +1,30 @@
 import { View, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
-export default function NavigationBar({ navigation }) {
+export default function NavigationBar({ setCurrentScreen }) {
   return (
     <View style={styles.navigationBar}>
       {/* Home */}
-      <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Home')}>
+      <TouchableOpacity style={styles.navButton} onPress={() => setCurrentScreen('Home')}>
         <Image source={require('../assets/home.png')} style={styles.icon} resizeMode="contain" />
       </TouchableOpacity>
 
+      {/* Events */}
+      <TouchableOpacity style={styles.navButton} onPress={() => setCurrentScreen('Events')}>
+        <Image source={require('../assets/events.png')} style={styles.icon} resizeMode="contain" />
+      </TouchableOpacity>
+
       {/* Map */}
-      <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Search')}>
+      <TouchableOpacity style={styles.navButton} onPress={() => setCurrentScreen('Map')}>
         <Image source={require('../assets/map.png')} style={styles.icon} resizeMode="contain" />
       </TouchableOpacity>
 
       {/* Add Post */}
-      <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Notifications')}>
+      <TouchableOpacity style={styles.navButton} onPress={() => setCurrentScreen('Post')}>
         <Image source={require('../assets/add.png')} style={styles.icon} resizeMode="contain" />
       </TouchableOpacity>
 
       {/* Profile */}
-      <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Profile')}>
+      <TouchableOpacity style={styles.navButton} onPress={() => setCurrentScreen('Profile')}>
         <Image source={require('../assets/profile.png')} style={styles.icon} resizeMode="contain" />
       </TouchableOpacity>
     </View>

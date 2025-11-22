@@ -283,13 +283,12 @@ const fetchPosts = async () => {
         </View>
         {/* Feed */}
         {renderContent()}
-      <NavigationBar></NavigationBar>
     </View>
     {/* Focused Post Modal (needs to also pass onToggleLike if you want to like from modal) */}
       <Modal
         visible={!!selectedPost}
         transparent
-        animationType="fade"
+        //animationType="fade"
         onRequestClose={() => setSelectedPost(null)}
       >
         <Pressable style={styles.modalBackground} onPress={() => setSelectedPost(null)}>
@@ -349,7 +348,7 @@ button: {
   },
 
   feedContainer: {
-
+    marginTop: 10
   },
 
   userImg: {

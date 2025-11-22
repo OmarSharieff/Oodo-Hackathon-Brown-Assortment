@@ -246,8 +246,7 @@ export default function EventsScreen({ navigation }) {
         </View>
         
         {renderContent()}
-        
-        <NavigationBar />
+    
       </View>
 
       {/* Event Detail Modal */}
