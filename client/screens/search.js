@@ -16,7 +16,6 @@ export default function SearchScreen({ navigation }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    
     initializeMap();
   }, []);
 
