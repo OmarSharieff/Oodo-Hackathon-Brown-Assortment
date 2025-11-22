@@ -26,7 +26,7 @@ const posts = [
     user_id: 'Alex',
     location: '92 Rue Dupont, Schaerbeek BE',
     rating: 3,
-    likes: 18,
+    likes: 1800,
     description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
   },
    {
@@ -35,7 +35,7 @@ const posts = [
     location: '92 Rue Dupont, Schaerbeek BE',
     image: require('../assets/image.png'), // use require() for local assets
     rating: 4,
-    likes: 42,
+    likes: 100,
     description: 'Enjoying the hackathon vibes!',
   },
 ];
@@ -52,6 +52,14 @@ const posts = [
       )
     );
   };
+
+function formatLikes(num) {
+  return new Intl.NumberFormat('en', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(num);
+}
+
 const PostCard = ({ item, onPress, expanded = false }) => (
   <TouchableOpacity disabled={!onPress} onPress={onPress} activeOpacity={0.8}>
     <View style={styles.post}>
@@ -112,7 +120,7 @@ const PostCard = ({ item, onPress, expanded = false }) => (
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <Text style={styles.likesText}>{item.likes}</Text>
+          <Text style={styles.likesText}>{formatLikes(item.likes)}</Text>
         </View>
 
         {/* ✅ Conditional cutoff */}
