@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "Node.js based backend",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Omar, Ivanna, Usman, Fahad",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0"
