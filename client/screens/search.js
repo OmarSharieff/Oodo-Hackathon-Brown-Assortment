@@ -1,53 +1,95 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Image, ActivityIndicator, Text, Alert } from 'react-native';
+import { View, StyleSheet, Image, ActivityIndicator, Text, Alert, TouchableOpacity } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NavigationBar from '../components/navigationBar';
 
-// REPLACE with your computer's local IP if testing on physical device/Android Emulator
-// e.g., 'http://192.168.1.5:3000'
-const API_URL = 'http://localhost:3000'; 
+// Backend URL - Updated for physical device testing
+// Use localhost for simulator, WiFi IP for physical device
+const API_URL = 'http://10.30.64.172:3000';
 
 export default function SearchScreen({ navigation }) {
   const [location, setLocation] = useState(null);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    (async () => {
-      // 1. Request Permissions
+    
+    initializeMap();
+  }, []);
+
+  const initializeMap = async () => {
+    try {
+      // 1. Request Location Permissions
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Allow location access to see nearby spots.');
+        setError('Location permission denied');
+        Alert.alert(
+          'Permission Required',
+          'Please allow location access to see nearby spots.',
+          [{ text: 'OK' }]
+        );
         setLoading(false);
         return;
       }
 
-      // 2. Get User Location
-      let userLocation = await Location.getCurrentPositionAsync({});
+      // 2. Get User's Current Location
+      let userLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      
       setLocation(userLocation.coords);
 
-      // 3. Fetch Nearby Locations from your Backend
-      fetchLocations(userLocation.coords.latitude, userLocation.coords.longitude);
-    })();
-  }, []);
+      // 3. Fetch Nearby Locations from Backend
+      await fetchLocations(userLocation.coords.latitude, userLocation.coords.longitude);
+    } catch (err) {
+      console.error('Initialization error:', err);
+      setError('Failed to initialize map');
+      setLoading(false);
+    }
+  };
 
   const fetchLocations = async (lat, long) => {
     try {
-      // Using your backend route: /api/locations/nearby
       const response = await fetch(
-        `${API_URL}/api/locations/nearby?latitude=${lat}&longitude=${long}&radius=10`
+        `${API_URL}/api/locations/nearby?latitude=${lat}&longitude=${long}&radius=10`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
       );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const json = await response.json();
       
-      if (json.success) {
-        setLocations(json.data); // Your backend returns { data: [...] }
+      if (json.success && json.data) {
+        setLocations(json.data);
+        console.log(`✅ Loaded ${json.data.length} locations from database`);
+      } else {
+        console.warn('No locations found in response');
+        setLocations([]);
       }
     } catch (error) {
-      console.error("Error fetching locations:", error);
+      console.error('Error fetching locations:', error);
+      setError('Failed to load locations');
+      // Set empty array so map still renders
+      setLocations([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshLocations = () => {
+    if (location) {
+      setLoading(true);
+      fetchLocations(location.latitude, location.longitude);
     }
   };
 
@@ -55,7 +97,10 @@ export default function SearchScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#f4d171" />
-        <Text>Finding nearby vibes...</Text>
+        <Text style={styles.loadingText}>Finding nearby locations...</Text>
+        {error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
       </View>
     );
   }
@@ -66,15 +111,17 @@ export default function SearchScreen({ navigation }) {
         
         <MapView
           style={styles.map}
-          provider={PROVIDER_GOOGLE} // Remove this line if using Apple Maps on iOS
+          provider={PROVIDER_GOOGLE}
           initialRegion={{
             latitude: location.latitude,
             longitude: location.longitude,
-            latitudeDelta: 0.01, // Zoom level
-            longitudeDelta: 0.01,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
           }}
           showsUserLocation={true}
           showsMyLocationButton={true}
+          showsCompass={true}
+          showsScale={true}
         >
           {locations.map((loc) => (
             <Marker
@@ -83,15 +130,14 @@ export default function SearchScreen({ navigation }) {
                 latitude: parseFloat(loc.latitude),
                 longitude: parseFloat(loc.longitude),
               }}
-              title={loc.hotspot ? "Hotspot!" : "Spot"}
+              title={loc.hotspot ? "🔥 Hotspot" : "📍 Location"}
               description={loc.near_greenery ? "Near Greenery 🌿" : ""}
             >
-              {/* Custom Marker Images based on data */}
               <Image
                 source={
                   loc.hotspot
-                    ? require('../assets/fire.png') // Hotspot gets Fire icon
-                    : require('../assets/pin.png')  // Regular gets Pin icon
+                    ? require('../assets/fire.png')
+                    : require('../assets/pin.png')
                 }
                 style={{
                   width: loc.hotspot ? 35 : 30,
@@ -103,7 +149,22 @@ export default function SearchScreen({ navigation }) {
           ))}
         </MapView>
 
-        {/* Navigation Bar pinned to bottom */}
+        {/* Refresh Button */}
+        <TouchableOpacity 
+          style={styles.refreshButton}
+          onPress={refreshLocations}
+        >
+          <Text style={styles.refreshButtonText}>🔄</Text>
+        </TouchableOpacity>
+
+        {/* Location Count */}
+        <View style={styles.locationCount}>
+          <Text style={styles.locationCountText}>
+            {locations.length} location{locations.length !== 1 ? 's' : ''} nearby
+          </Text>
+        </View>
+
+        {/* Navigation Bar */}
         <View style={styles.navContainer}>
           <NavigationBar navigation={navigation} />
         </View>
@@ -121,6 +182,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#ff3b30',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   map: {
     width: '100%',
@@ -131,5 +205,43 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  refreshButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#f4d171',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  refreshButtonText: {
+    fontSize: 24,
+  },
+  locationCount: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(244, 209, 113, 0.9)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  locationCountText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
 });

@@ -12,16 +12,19 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator 
-        initialRouteName="Search" // 👈 This sets the Map page as the first screen
+        initialRouteName="Search" // Map page is the first screen
         screenOptions={{ 
           headerShown: false, 
           animation: 'fade'
         }}
       >
+        {/* Map Screen - First Screen */}
         <Stack.Screen name="Search" component={SearchScreen} />
+        
+        {/* Home/Feed Screen */}
         <Stack.Screen name="Home" component={HomeScreen} />
         
-        {/* Placeholders for other screens */}
+        {/* Placeholder screens - replace with actual components later */}
         <Stack.Screen name="Notifications" component={HomeScreen} />
         <Stack.Screen name="Profile" component={HomeScreen} />
       </Stack.Navigator>
