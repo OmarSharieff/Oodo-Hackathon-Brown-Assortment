@@ -16,8 +16,8 @@ const posts = [
     location: '92 Rue Dupont, Schaerbeek BE',
     image: require('../assets/image.png'), // use require() for local assets
     rating: 4,
-    likes: 42,
-    description: 'Enjoying the hackathon vibes!',
+    likes: 42 ,
+    description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
   },
   {
     id: '2',
@@ -53,8 +53,7 @@ export default function HomeScreen({ navigation }) {
 
                 </View>
                 </View>
-                
-                {/* <Text style={styles.rating}>⭐ ⭐ ⭐ ⭐ ⭐</Text> */}
+
                 <View style={styles.rating}>
                 {[...Array(5)].map((_, index) => (
                     <Image
@@ -79,10 +78,13 @@ export default function HomeScreen({ navigation }) {
                 <Image source={require('../assets/heart_pressed.png')} style={styles.heart} resizeMode="contain" />
                 <Text style={styles.likesText}>{item.likes}</Text>
             </View>
-            <Text style={styles.description}>
-            <Text style={styles.username}>{item.username} </Text>
-            {item.description}
-            </Text>
+            <Text
+                style={styles.description}
+                numberOfLines={item.image ? 1 : 4}   // 👈 conditional lines
+                ellipsizeMode="tail"                 // adds "..." if truncated
+            >
+                {item.description}
+              </Text>
         </View>
         </View>
     );
@@ -206,13 +208,6 @@ locationText:{
   marginRight: 2,
 },
 
-heart: {
- height: 18,
-    width: 18,
-    marginTop: 8,
-    marginLeft: 5
-},
-
 headerInfo: {
   flexDirection: 'column',
   alignItems: 'flex-start', 
@@ -220,7 +215,37 @@ headerInfo: {
 },
 
 postFooter: {
-  flexDirection: 'row'
-}
+  flexDirection: 'row',
+  alignContent: 'flex-start',
+  marginTop: 8,
+  marginRight: 40,
+  paddingBottom: 5
+},
+
+description: {
+  fontSize: 14,
+  color: '#444',
+},
+username: {
+  fontWeight: 'bold',
+},
+
+likesContainer: {
+  flexDirection: 'column', 
+  alignItems: 'center',      
+  paddingRight: 8,
+  paddingLeft: 5
+},
+
+likesText: {
+  fontSize: 10,
+  textAlign: 'center', 
+  overflow: 'hidden'
+},
+
+heart: {
+  height: 18,
+  width: 18,
+},
 
 });
