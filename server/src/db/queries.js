@@ -1,6 +1,8 @@
 import supabase from "./index.js";
 import { getBoundingBox, filterLocationsByDistance } from "../utils/geoUtils.js";
-import { getRandomMapboxImage } from '../services/mapboxService.js';
+import { getRandomImage, getNearbyImages } from '../services/unifiedImageryService.js';
+
+
 
 /* =========================================================
    USERS / AUTH
@@ -641,10 +643,10 @@ export async function addLocationWithMapillary({
   // Fetch Mapillary image if requested
   if (fetchMapillary) {
     try {
-      const mapillaryImage = await getRandomMapboxImage(
+      const mapillaryImage = await getRandomKartaViewImage(
         parseFloat(latitude), 
         parseFloat(longitude), 
-        0.1 // 100m radius
+        2 // 100m radius
       );
 
       if (mapillaryImage) {
@@ -683,10 +685,10 @@ export async function addLocationWithMapillary({
 // UPDATE LOCATION WITH MAPILLARY DATA
 export async function updateLocationMapillary(location_id, latitude, longitude) {
   try {
-    const mapillaryImage = await getRandomMapboxImage(
+    const mapillaryImage = await getRandomKartaViewImage(
       parseFloat(latitude), 
       parseFloat(longitude), 
-      0.1
+      2
     );
 
     if (!mapillaryImage) {
@@ -828,15 +830,13 @@ export async function getCachedMapillaryLocations(latitude, longitude, radiusKm 
   return nearbyLocations.slice(0, limit);
 }
 
-// Check if cached data is stale (older than 1 hour)
+// Check if cached data is stale (older than maxAgeMinutes)
 export function isCacheStale(locations, maxAgeMinutes = 60) {
   if (!locations || locations.length === 0) return true;
   
   const now = new Date();
   const staleThreshold = new Date(now.getTime() - maxAgeMinutes * 60 * 1000);
   
-  // Check if ANY location is older than threshold
-  // If so, we should refresh
   const hasStaleData = locations.some(loc => {
     const createdAt = new Date(loc.created_at);
     return createdAt < staleThreshold;
@@ -845,18 +845,17 @@ export function isCacheStale(locations, maxAgeMinutes = 60) {
   return hasStaleData;
 }
 
-
-// Background refresh: Update stale Mapbox cache
-export async function refreshMapboxCacheInBackground(latitude, longitude, radiusKm = 2) {
+// Background refresh: Update stale image cache
+export async function refreshImageCacheInBackground(latitude, longitude, radiusKm = 2) {
   try {
-    console.log('🔄 Background refresh started for Mapbox cache...');
+    console.log('🔄 Background refresh started for image cache...');
     
-    const { getNearbyMapboxImages } = await import('../services/mapboxService.js');
+    const { getNearbyImages } = await import('../services/unifiedImageryService.js');
     
-    const images = await getNearbyMapboxImages(latitude, longitude, radiusKm);
+    const images = await getNearbyImages(latitude, longitude, radiusKm);
     
     if (images.length > 0) {
-      await saveMapboxLocations(images);
+      await saveImageLocations(images);
       console.log(`✅ Background refresh complete: ${images.length} locations updated`);
     } else {
       console.log('ℹ️ Background refresh: No new images found');
@@ -866,12 +865,12 @@ export async function refreshMapboxCacheInBackground(latitude, longitude, radius
   }
 }
 
-// Rename saveMapillaryLocations to saveMapboxLocations
-export async function saveMapboxLocations(mapboxImages) {
-  const locationsToInsert = mapboxImages.map(img => ({
+// Save image locations to database
+export async function saveImageLocations(images) {
+  const locationsToInsert = images.map(img => ({
     latitude: img.geometry.coordinates[1],
     longitude: img.geometry.coordinates[0],
-    mapillary_image_id: img.id, // Reuse same column
+    mapillary_image_id: img.id,
     mapillary_image_url: img.thumb_1024_url,
     mapillary_thumb_url: img.thumb_256_url,
     mapillary_captured_at: img.captured_at,
@@ -891,7 +890,7 @@ export async function saveMapboxLocations(mapboxImages) {
     .select();
 
   if (error) {
-    console.error('Error saving Mapbox locations:', error);
+    console.error('Error saving image locations:', error);
     throw error;
   }
 

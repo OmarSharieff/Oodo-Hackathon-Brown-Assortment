@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import NavigationBar from '../components/navigationBar';
+// import NavigationBar from '../components/navigationBar'; // Commented out if unused in snippet
 import LeafletMapView from '../components/LeafletMapView';
 
 const API_URL = 'http://10.0.2.2:3000';
@@ -38,11 +38,10 @@ export default function SearchScreen({ navigation }) {
     setLoading(true);
     setError(null);
     
-
-
+    ///50.63061399225325, 4.863512597878729
     const mockCoords = {
-      latitude: 50.82055797368375,
-      longitude: 4.402875123647935,
+      latitude: 50.63061399225325,
+      longitude: 4.863512597878729,
     };
     
     // For testing: use mock location immediately
@@ -124,96 +123,127 @@ export default function SearchScreen({ navigation }) {
 const fetchLocations = async (lat, long) => {
   try {
     const [mapillaryResponse, postsResponse] = await Promise.all([
-      fetch(
-        `${API_URL}/api/mapillary/nearby-cached?latitude=${lat}&longitude=${long}&radius=4`,
-        {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        }
-      ),
-      fetch(
-        `${API_URL}/api/locations/with-images?latitude=${lat}&longitude=${long}&radius=4`,
-        {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
+      fetch(`${API_URL}/api/mapillary/nearby-cached?latitude=${lat}&longitude=${long}&radius=10`),
+      fetch(`${API_URL}/api/locations/with-images?latitude=${lat}&longitude=${long}&radius=10`)
     ]);
-    
+
     const mapillaryJson = await mapillaryResponse.json();
     const postsJson = await postsResponse.json();
 
-    console.log('📊 Raw Mapillary response:', JSON.stringify(mapillaryJson, null, 2));
-    console.log('📊 Raw Posts response:', JSON.stringify(postsJson, null, 2));
+    console.log("📊 Raw Mapillary:", mapillaryJson);
+    console.log("📊 Raw Posts:", postsJson);
 
-    let allLocations = [];
+    // -----------------------------------------------------------------
+    // 1️⃣ Parse USER POSTS first
+    // -----------------------------------------------------------------
+    let postLocations = [];
 
-    // Add Mapbox/Mapillary locations with validation
-    if (mapillaryJson.success && mapillaryJson.data && Array.isArray(mapillaryJson.data)) {
-      const mapillaryLocations = mapillaryJson.data
-        .filter(loc => loc.latitude && loc.longitude) // ✅ Filter out invalid data
-        .map(loc => ({
-          id: loc.mapillary_image_id || loc.id,
-          type: 'mapillary',
-          latitude: parseFloat(loc.latitude),
-          longitude: parseFloat(loc.longitude),
-          image_url: loc.mapillary_image_url,
-          thumb_url: loc.mapillary_thumb_url,
-          // Convert Unix timestamp (bigint in milliseconds) to Date string
-          captured_at: loc.mapillary_captured_at 
-            ? new Date(parseInt(loc.mapillary_captured_at)).toISOString() 
-            : null,
-          compass_angle: loc.mapillary_compass_angle,
-          distance: loc.distance || 0,
-          hotspot: loc.hotspot || false,
-          near_greenery: loc.near_greenery || false,
-          halal: loc.halal || false,
-          crowded: loc.crowded || false,
-        }))
-        .filter(loc => !isNaN(loc.latitude) && !isNaN(loc.longitude)); // ✅ Ensure valid numbers
+    if (postsJson.success && Array.isArray(postsJson.data)) {
+      postLocations = postsJson.data
+        .filter(p => p.latitude && p.longitude)
+        .map(p => ({
+          id: `post_${p.id}`, // prefix to avoid key collision
+          type: "post",
+          latitude: parseFloat(p.latitude),
+          longitude: parseFloat(p.longitude),
+          image_url: p.image_url,
+          thumb_url: p.image_url,
+          description: p.description,
+          rating: p.rating,
+          created_at: p.created_at,
+          distance: p.distance || 0,
+          hotspot: p.hotspot || false,
+          near_greenery: p.near_greenery || false,
+          halal: p.halal || false,
+          crowded: p.crowded || false,
+        }));
+    }
+
+    console.log("✅ Posts loaded:", postLocations.length);
+
+    // -----------------------------------------------------------------
+    // 2️⃣ Parse MAPILLARY + MAPBOX + DB Cached
+    // -----------------------------------------------------------------
+    let mapillaryLocations = [];
+    let mapboxLocations = [];
+
+    if (Array.isArray(mapillaryJson.data)) {
       
-      allLocations = [...allLocations, ...mapillaryLocations];
-      console.log(`✅ Loaded ${mapillaryLocations.length} valid Mapbox images`);
-    }
-
-    // Add user posts with images with validation
-    if (postsJson.success && postsJson.data && Array.isArray(postsJson.data)) {
-      const postLocations = postsJson.data
-        .filter(post => post.latitude && post.longitude) // ✅ Filter out invalid data
-        .map(post => ({
-          id: post.id,
-          type: 'post',
-          latitude: parseFloat(post.latitude),
-          longitude: parseFloat(post.longitude),
-          image_url: post.image_url,
-          thumb_url: post.image_url,
-          description: post.description,
-          rating: post.rating,
-          created_at: post.created_at,
-          distance: post.distance || 0,
-          hotspot: post.hotspot || false,
-          near_greenery: post.near_greenery || false,
-          halal: post.halal || false,
-          crowded: post.crowded || false,
-        }))
-        .filter(loc => !isNaN(loc.latitude) && !isNaN(loc.longitude)); // ✅ Ensure valid numbers
+      // Separate Cached Mapillary entries from Mapbox fallbacks
+      // We look at 'source' OR 'mapillary_image_id' pattern
       
-      allLocations = [...allLocations, ...postLocations];
-      console.log(`✅ Loaded ${postLocations.length} valid user posts`);
+      const rawMapillary = mapillaryJson.data.filter(loc => {
+        const isExplicitMapillary = loc.source === "mapillary";
+        const hasMapillaryId = loc.mapillary_image_id && String(loc.mapillary_image_id).startsWith("mapillary");
+        return isExplicitMapillary || hasMapillaryId;
+      });
+
+      const rawMapbox = mapillaryJson.data.filter(loc => {
+         // It's mapbox if it has an image but isn't categorized as mapillary above
+         const isExplicitMapillary = loc.source === "mapillary";
+         const hasMapillaryId = loc.mapillary_image_id && String(loc.mapillary_image_id).startsWith("mapillary");
+         return loc.mapillary_image_url && !isExplicitMapillary && !hasMapillaryId;
+      });
+
+      // Map Cached Mapillary Items
+      mapillaryLocations = rawMapillary.map(loc => ({
+        id: `mapillary_${loc.id}`,
+        type: "mapillary",
+        latitude: parseFloat(loc.latitude),
+        longitude: parseFloat(loc.longitude),
+        image_url: loc.mapillary_image_url,
+        thumb_url: loc.mapillary_thumb_url,
+        captured_at: loc.mapillary_captured_at,
+        distance: loc.distance || 0,
+        // Pass through DB fields if they exist
+        hotspot: loc.hotspot || false,
+        near_greenery: loc.near_greenery || false,
+        halal: loc.halal || false,
+        crowded: loc.crowded || false,
+      }));
+
+      // Map Fallback Mapbox Items
+      mapboxLocations = rawMapbox.map(loc => ({
+        id: `mapbox_${loc.id}`,
+        type: "mapbox",
+        latitude: parseFloat(loc.latitude),
+        longitude: parseFloat(loc.longitude),
+        image_url: loc.mapillary_image_url,
+        thumb_url: loc.mapillary_thumb_url,
+        captured_at: loc.mapillary_captured_at,
+        distance: loc.distance || 0,
+        // Pass through DB fields
+        hotspot: loc.hotspot || false,
+        near_greenery: loc.near_greenery || false,
+      }));
     }
 
-    // Sort by distance
-    allLocations.sort((a, b) => a.distance - b.distance);
-    
-    setLocations(allLocations);
-    console.log(`✅ Total valid locations: ${allLocations.length}`);
-    
-    if (allLocations.length === 0) {
-      setError('No locations with images found nearby');
+    console.log("📸 Mapillary:", mapillaryLocations.length);
+    console.log("🗺 Mapbox:", mapboxLocations.length);
+
+    // -----------------------------------------------------------------
+    // 3️⃣ Combine them in priority order
+    // posts → mapillary → mapbox
+    // -----------------------------------------------------------------
+
+    const MAX_MAPBOX = 4; // limit fallback spam
+
+    const combined = [
+      ...postLocations,
+      ...mapillaryLocations,
+      ...mapboxLocations.slice(0, MAX_MAPBOX)
+    ].sort((a, b) => a.distance - b.distance);
+
+    console.log("🎯 Final combined:", combined.length);
+
+    setLocations(combined);
+
+    if (combined.length === 0) {
+      setError("No street-view images found nearby");
     }
-  } catch (error) {
-    console.error('Error fetching locations:', error);
-    setError('Failed to load locations with images');
+  } catch (err) {
+    console.error("Error fetching locations:", err);
+    setError("Failed to load locations");
     setLocations([]);
   }
 };
@@ -347,7 +377,7 @@ const fetchLocations = async (lat, long) => {
                           {item.hotspot ? "🔥 Hotspot" : "📍 Location"}
                         </Text>
                         <Text style={styles.typeBadge}>
-                          {item.type === 'mapillary' ? '📷 Street View' : '👤 User Post'}
+                          {item.type === 'mapillary' ? '📷 KartaView' : '👤 User Post'}
                         </Text>
                       </View>
                       {item.description && (
@@ -406,7 +436,7 @@ const fetchLocations = async (lat, long) => {
                 </Text>
                 
                 <Text style={styles.locationTypeBadge}>
-                  {selectedLocation?.type === 'mapillary' ? '📷 Street View' : '👤 User Post'}
+                  {selectedLocation?.type === 'mapillary' ? '📷 KartaView' : '👤 User Post'}
                 </Text>
                 
                 {selectedLocation?.near_greenery && (

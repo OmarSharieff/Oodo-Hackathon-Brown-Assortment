@@ -2,16 +2,16 @@ import express from 'express';
 import { 
   getCachedMapillaryLocations, 
   isCacheStale, 
-  refreshMapboxCacheInBackground, // Updated name
-  saveMapboxLocations
+  refreshImageCacheInBackground,
+  saveImageLocations
 } from '../db/queries.js';
-import { getNearbyMapboxImages } from '../services/mapboxService.js';
+import { getNearbyImages } from '../services/unifiedImageryService.js';
 
 const router = express.Router();
 
 /**
  * GET /api/mapillary/nearby-cached
- * Get cached Mapillary locations with background refresh if stale
+ * Get cached street view images with background refresh if stale
  */
 router.get('/nearby-cached', async (req, res) => {
   try {
@@ -29,12 +29,12 @@ router.get('/nearby-cached', async (req, res) => {
     const rad = parseFloat(radius);
     const lim = parseInt(limit);
 
-    console.log(`🔍 Fetching cached Mapillary images near: ${lat}, ${lon} within ${rad}km`);
+    console.log(`🔍 Fetching cached images near: ${lat}, ${lon} within ${rad}km`);
 
     // Get cached locations
     const cachedLocations = await getCachedMapillaryLocations(lat, lon, rad, lim);
     
-    console.log(`📦 Found ${cachedLocations.length} cached Mapillary locations`);
+    console.log(`📦 Found ${cachedLocations.length} cached locations`);
 
     // Check if cache is stale
     const isStale = isCacheStale(cachedLocations, 60); // 60 minutes
@@ -42,7 +42,7 @@ router.get('/nearby-cached', async (req, res) => {
     if (isStale) {
       console.log('⏰ Cache is stale, triggering background refresh...');
       // Trigger background refresh (don't await)
-      refreshMapboxCacheInBackground(lat, lon, rad).catch(err => {
+      refreshImageCacheInBackground(lat, lon, rad).catch(err => {
         console.error('Background refresh error:', err);
       });
     } else {
@@ -67,7 +67,7 @@ router.get('/nearby-cached', async (req, res) => {
 
 /**
  * GET /api/mapillary/test-and-populate
- * Test Mapillary API and populate initial cache
+ * Test API and populate initial cache with Mapillary + Mapbox images
  */
 router.get('/test-and-populate', async (req, res) => {
   try {
@@ -77,37 +77,47 @@ router.get('/test-and-populate', async (req, res) => {
     const lon = parseFloat(longitude);
     const rad = parseFloat(radius);
 
-    console.log('🗺️ Testing Mapbox API and populating cache...');
+    console.log('🗺️ Testing imagery APIs and populating cache...');
     console.log(`📍 Location: ${lat}, ${lon}`);
     console.log(`📏 Radius: ${rad}km`);
-    console.log(`🔑 Token present: ${!!process.env.MAPBOX_ACCESS_TOKEN}`);
-    console.log(`🔑 Token format: ${process.env.MAPBOX_ACCESS_TOKEN?.substring(0, 15)}...`);
+    console.log(`🔑 Mapillary token: ${!!process.env.MAPILLARY_ACCESS_TOKEN}`);
+    console.log(`🔑 Mapbox token: ${!!process.env.MAPBOX_ACCESS_TOKEN}`);
 
-    // Fetch from Mapbox
-    const images = await getNearbyMapboxImages(lat, lon, rad);
+    // Fetch from both Mapillary and Mapbox
+    const images = await getNearbyImages(lat, lon, rad);
     
-    console.log(`📸 Generated ${images.length} images from Mapbox`);
+    console.log(`📸 Found ${images.length} total images`);
 
     if (images.length === 0) {
       return res.json({
         success: false,
-        message: 'No Mapbox images generated',
+        message: 'No images found from any source',
         data: [],
         count: 0,
-        token_present: !!process.env.MAPBOX_ACCESS_TOKEN
+        mapillary_token: !!process.env.MAPILLARY_ACCESS_TOKEN,
+        mapbox_token: !!process.env.MAPBOX_ACCESS_TOKEN
       });
     }
 
+    // Group by source for reporting
+    const bySource = images.reduce((acc, img) => {
+      acc[img.source] = (acc[img.source] || 0) + 1;
+      return acc;
+    }, {});
+
+    console.log('📊 Images by source:', bySource);
+
     // Save to database
-    const saved = await saveMapboxLocations(images);
+    const saved = await saveImageLocations(images);
     
     console.log(`✅ Saved ${saved.length} locations to database`);
 
     res.json({
       success: true,
-      message: 'Cache populated successfully with Mapbox images',
+      message: 'Cache populated successfully',
       data: saved,
-      count: saved.length
+      count: saved.length,
+      sources: bySource
     });
   } catch (error) {
     console.error('❌ Error in test-and-populate:', error);
@@ -140,7 +150,7 @@ router.get('/refresh', async (req, res) => {
 
     console.log(`🔄 Manual refresh triggered for: ${lat}, ${lon}`);
 
-    await refreshMapillaryCacheInBackground(lat, lon, rad);
+    await refreshImageCacheInBackground(lat, lon, rad);
 
     const locations = await getCachedMapillaryLocations(lat, lon, rad);
 
@@ -151,7 +161,7 @@ router.get('/refresh', async (req, res) => {
       count: locations.length
     });
   } catch (error) {
-    console.error('Error in /api/mapillary/refresh:', error);
+    console.error('❌ Error in /api/mapillary/refresh:', error);
     res.status(500).json({
       success: false,
       error: error.message
