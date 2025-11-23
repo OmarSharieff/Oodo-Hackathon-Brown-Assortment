@@ -896,3 +896,111 @@ export async function saveImageLocations(images) {
 
   return data;
 }
+
+/* =========================================================
+   IMAGE UPLOADS
+========================================================= */
+
+// Upload image to Supabase Storage
+export async function uploadReviewImage(uri, userId) {
+  try {
+    // Create a unique filename
+    const timestamp = Date.now();
+    const filename = `${userId}_${timestamp}.jpg`;
+    const filePath = `reviews/${filename}`;
+
+    // For React Native, we need to handle the file differently
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('review-images')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('review-images')
+      .getPublicUrl(filePath);
+
+    return {
+      path: data.path,
+      url: publicUrl
+    };
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+}
+
+// Delete image from Supabase Storage
+export async function deleteReviewImage(filePath) {
+  try {
+    const { error } = await supabase.storage
+      .from('review-images')
+      .remove([filePath]);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    throw error;
+  }
+}
+
+// Add review with image upload
+export async function addReviewWithImage({
+  user_id,
+  description,
+  rating,
+  latitude,
+  longitude,
+  imageUri = null
+}) {
+  let image_url = null;
+  let image_path = null;
+
+  try {
+    // Upload image if provided
+    if (imageUri) {
+      const uploadResult = await uploadReviewImage(imageUri, user_id);
+      image_url = uploadResult.url;
+      image_path = uploadResult.path;
+    }
+
+    // Find or create location
+    let location = await findLocation(latitude, longitude);
+    if (!location) {
+      location = await addLocation({ latitude, longitude });
+    }
+
+    // Create the review post
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({
+        user_id,
+        description,
+        image_url,
+        rating,
+        location_id: location.id,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    // If post creation failed but image was uploaded, clean up the image
+    if (image_path) {
+      await deleteReviewImage(image_path).catch(console.error);
+    }
+    throw error;
+  }
+}
