@@ -469,7 +469,7 @@ const fetchLocations = async (lat, long) => {
 
         {/* Navigation Bar */}
         <View style={styles.navContainer}>
-          <NavigationBar navigation={navigation} />
+          
         </View>
       </View>
     </SafeAreaView>
