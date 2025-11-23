@@ -9,6 +9,8 @@ import HomeScreen from './screens/home';
 import SearchScreen from './screens/search';
 import EventsScreen from './screens/events';
 import NavigationBar from './components/navigationBar';
+import ProfileScreen from './screens/Profile';
+import PostReviewScreen from './screens/PostReview';
 
 // Auth Stack (when user is NOT logged in)
 function AuthStack() {
@@ -33,6 +35,10 @@ function AppStack() {
         return <EventsScreen />;
       case 'Map':
         return <SearchScreen/>;
+      case 'Profile':
+        return <ProfileScreen/>;
+      case 'Post':
+        return <PostReviewScreen/>;
       default:
         return <HomeScreen />;
     }
