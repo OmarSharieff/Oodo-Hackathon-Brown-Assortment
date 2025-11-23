@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function SignupScreen({ navigation }) {
+export default function SignupScreen({ setCurrentAuthScreen }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -155,7 +155,7 @@ export default function SignupScreen({ navigation }) {
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>
               <TouchableOpacity
-                onPress={() => navigation.navigate('Login')}
+                onPress={() => setCurrentAuthScreen('Login')}
                 disabled={loading}
               >
                 <Text style={styles.linkText}>Sign In</Text>

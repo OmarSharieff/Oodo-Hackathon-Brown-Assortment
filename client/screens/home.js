@@ -343,8 +343,9 @@ const toggleLike = async (id) => {
     <SafeAreaView style={{ flex: 1, width: '100%' }} edges={['bottom']}>
     <View style={styles.homeContainer}>
         <View style={styles.header}>
-            <Text style={styles.headerTitle}>Recent Activity</Text>
-              
+          <Image source={require('../assets/pissBabyLogo.png')}style={styles.logo}></Image>
+            {/* <Text style={styles.headerTitle}>Recent Activity</Text> */}
+  
         </View>
         {/* Feed */}
         {renderContent()}
@@ -379,16 +380,16 @@ const styles = StyleSheet.create({
     flex: 1,
     //flexDirection: 'row',
     backgroundColor: '#f9f9f9',
+    //backgroundColor: '#f4d171',
     width: '100%'
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    flexDirection: 'column',
+    alignItems: 'center',
     paddingTop: 50,
     paddingBottom: 10,
     padding: 20,
-    //backgroundColor: '#ffffffff',
+    backgroundColor: '#ffffffff',
     borderBottomWidth: .3,       // 👈 line divider
     borderBottomColor: '#ccc',  // 👈 divider color
   },
@@ -396,13 +397,20 @@ const styles = StyleSheet.create({
   headerTitle: {
     //justifyContent: 'flex-end',
     fontFamily: 'Montserrat-Bold',
-    fontSize: 24,
+    fontSize: 18,
     //fontWeight: 'bold',npx react-native-assetnpx react-native-asset
     color: '#333',
+    textAlign: 'left',
   },
 
   feedContainer: {
     marginTop: 10
+  },
+
+  logo:{
+    width: 45,
+    height: 45,
+    borderRadius: 30,
   },
 
   userImg: {

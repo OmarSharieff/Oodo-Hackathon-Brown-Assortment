@@ -269,7 +269,8 @@ const fetchEvents = async () => {
     <SafeAreaView style={{ flex: 1, width: '100%'}} edges={['bottom']}>
       <View style={styles.eventContainer}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Events</Text>
+            <Image source={require('../assets/pissBabyLogo.png')}style={styles.logo}></Image>
+          {/* <Text style={styles.headerTitle}>Events</Text> */}
         </View>
         
         {renderContent()}
@@ -360,16 +361,18 @@ const fetchEvents = async () => {
 const styles = StyleSheet.create({
   eventContainer: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    //backgroundColor: '#f9f9f9',
+    
     width: '100%'
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'flex-end',
     paddingTop: 50,
     paddingBottom: 10,
     padding: 20,
+    //backgroundColor: '#f4d171',
     borderBottomWidth: .3,
     borderBottomColor: '#ccc',
   },
@@ -377,6 +380,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Bold',
     fontSize: 24,
     color: '#333',
+  },
+  
+  logo:{
+    width: 45,
+    height: 45,
+    borderRadius: 30,
+    
   },
   feedContainer: {
     paddingVertical: 10,

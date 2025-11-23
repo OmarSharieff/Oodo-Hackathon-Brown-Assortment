@@ -11,14 +11,26 @@ import EventsScreen from './screens/events';
 import NavigationBar from './components/navigationBar';
 import ProfileScreen from './screens/Profile';
 import PostReviewScreen from './screens/PostReview';
+import SignupScreen from './screens/SignupScreen';
 
 // Auth Stack (when user is NOT logged in)
 function AuthStack() {
+  const [currentAuthScreen, setCurrentAuthScreen] = useState('Login');
+
+  const renderAuthScreen = () => {
+    switch (currentAuthScreen) {
+      case 'Login':
+        return <LoginScreen setCurrentAuthScreen={setCurrentAuthScreen} />;
+      case 'SignUp':
+        return <SignupScreen setCurrentAuthScreen={setCurrentAuthScreen} />;
+      default:
+        return <LoginScreen setCurrentAuthScreen={setCurrentAuthScreen} />;
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
-      {/* You can decide whether to show Login or Signup here */}
-      <LoginScreen />
-      {/* Or conditionally <SignupScreen /> */}
+      {renderAuthScreen()}
     </View>
   );
 }
