@@ -3,11 +3,12 @@ import {
   getPosts,
   updatePostLikes
 } from '../db/queries.js';
+import supabase from '../db/index.js';
 
-// ADD REVIEW (automatically creates location if needed)
+// ADD REVIEW with image upload support
 export async function handleAddReview(req, res) {
   try {
-    const { user_id, description, image_url, rating, latitude, longitude, near_greenery } = req.body;
+    const { user_id, description, rating, latitude, longitude } = req.body;
 
     if (!user_id || !latitude || !longitude) {
       return res.status(400).json({
@@ -16,10 +17,10 @@ export async function handleAddReview(req, res) {
       });
     }
 
-    if (!description && !image_url) {
+    if (!description && !req.file) {
       return res.status(400).json({
         success: false,
-        message: 'Either description or image_url must be provided'
+        message: 'Either description or image must be provided'
       });
     }
 
@@ -30,14 +31,48 @@ export async function handleAddReview(req, res) {
       });
     }
 
+    let image_url = null;
+
+    // Handle image upload if file exists
+    if (req.file) {
+      try {
+        const timestamp = Date.now();
+        const filename = `${user_id}_${timestamp}.jpg`;
+        const filePath = `reviews/${filename}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('review-images')
+          .upload(filePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('review-images')
+          .getPublicUrl(filePath);
+
+        image_url = publicUrl;
+      } catch (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload image: ' + uploadError.message
+        });
+      }
+    }
+
     const review = await addReview({
-      user_id,
+      user_id: parseInt(user_id),
       description,
       image_url,
-      rating,
-      latitude,
-      longitude,
-      near_greenery: near_greenery || false  // Include near_greenery flag
+      rating: rating ? parseFloat(rating) : null,
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude)
     });
 
     res.status(201).json({
@@ -57,7 +92,7 @@ export async function handleAddReview(req, res) {
 export async function handleUpdatePostLikes(req, res) {
   try {
     const { post_id } = req.params;
-    const { likes } = req.body; // Expecting the *new* total likes count from frontend
+    const { likes } = req.body;
 
     if (typeof likes !== 'number' || likes < 0) {
       return res.status(400).json({
@@ -82,7 +117,6 @@ export async function handleUpdatePostLikes(req, res) {
   }
 }
 
-// GET POSTS (PAGINATED)
 export async function handleGetPosts(req, res) {
   try {
     const page = parseInt(req.query.page) || 1;

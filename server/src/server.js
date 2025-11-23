@@ -6,7 +6,7 @@ import postRoutes from './routes/post.routes.js';
 import locationRoutes from './routes/location.routes.js';
 import eventRoutes from './routes/event.routes.js';
 import mapillaryRoutes from './routes/mapillary.routes.js';
-import reviewRoutes from './routes/review.routes.js';
+
 
 
 
@@ -29,7 +29,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/mapillary', mapillaryRoutes);
-app.use('/api', reviewRoutes);
+app.use('/api/posts', postRoutes);
 
 
 // 404 handler
