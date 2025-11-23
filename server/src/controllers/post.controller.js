@@ -6,7 +6,7 @@ import {
 // ADD REVIEW (automatically creates location if needed)
 export async function handleAddReview(req, res) {
   try {
-    const { user_id, description, image_url, rating, latitude, longitude } = req.body;
+    const { user_id, description, image_url, rating, latitude, longitude, near_greenery } = req.body;
 
     if (!user_id || !latitude || !longitude) {
       return res.status(400).json({
@@ -35,7 +35,8 @@ export async function handleAddReview(req, res) {
       image_url,
       rating,
       latitude,
-      longitude
+      longitude,
+      near_greenery: near_greenery || false  // Include near_greenery flag
     });
 
     res.status(201).json({
