@@ -50,7 +50,7 @@ const EventCard = ({ item, onPress, onRSVP, currentUserId }) => {
       <View style={styles.event}>
         <View style={styles.postHeader}>
           <View style={styles.leftGroup}>
-            <Image source={require('../assets/pissbaby.png')} style={styles.userImg} />
+            <Image source={require('../assets/userImg.png')} style={styles.userImg} />
             <View style={styles.headerInfo}>
               <Text style={styles.username}>{item.host_user?.name || 'Unknown'}</Text>
               <Text style={styles.eventName}>{item.name}</Text>
