@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import NavigationBar from '../components/navigationBar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { 
   View, 
   Text, 
@@ -107,30 +108,56 @@ export default function EventsScreen({ navigation }) {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const CURRENT_USER_ID = user.id;
   // Fetch events from backend
-  const fetchEvents = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${EVENTS_API_URL}?page=1&limit=20&upcoming=true`);
+  // const fetchEvents = async () => {
+  //   setLoading(true);
+  //   setError(null);
+  //   try {
+  //     const response = await fetch(`${EVENTS_API_URL}?page=1&limit=20&upcoming=true`);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     }
       
-      const json = await response.json();
+  //     const json = await response.json();
       
-      if (json.success && json.data) {
-        setEvents(json.data);
-      } else {
-        throw new Error('Invalid response format');
-      }
-    } catch (e) {
-      console.error('Fetch error:', e);
-      setError('Could not load events. Check server connection.');
-    } finally {
-      setLoading(false);
+  //     if (json.success && json.data) {
+  //       setEvents(json.data);
+  //     } else {
+  //       throw new Error('Invalid response format');
+  //     }
+  //   } catch (e) {
+  //     console.error('Fetch error:', e);
+  //     setError('Could not load events. Check server connection.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  // Fetch events directly from Supabase (instead of backend API)
+const fetchEvents = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+ 
+    if (error) {
+      throw error;
     }
-  };
+
+    if (data) {
+      setEvents(data);
+    } else {
+      throw new Error("No events found");
+    }
+  } catch (e) {
+    console.error("Supabase fetch error:", e);
+    setError("Could not load events. Check Supabase connection.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Handle RSVP toggle
   const toggleRsvp = async (eventId, isCurrentlyRSVPd) => {
