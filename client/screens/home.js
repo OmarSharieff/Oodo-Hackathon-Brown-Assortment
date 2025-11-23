@@ -71,10 +71,10 @@ const PostCard = ({ item, onPress, style, expanded = false, onToggleLike }) => (
         <View style={styles.leftGroup}>
           <Image source={require('../assets/userImg.png')} style={styles.userImg} />
           <View style={styles.headerInfo}>
-            <Text style={styles.username}>{item.user_id}</Text>
+            <Text style={styles.username}>{item.user_name}</Text>
             <View style={styles.locationContainer}>
               <Image source={require('../assets/pin.png')} style={styles.pin} resizeMode="contain" />
-              <Text style={styles.locationText}>{item.location}</Text>
+              <Text style={styles.locationText}>{item.location_name}</Text>
             </View>
           </View>
         </View>
@@ -259,6 +259,8 @@ const fetchPosts = async () => {
       location: item.location
         ? `${item.location.latitude}, ${item.location.longitude}`
         : "Unknown",
+      location_name: item.location_name,
+      user_name: item.user_name,
       image: item.image_url || null,
       rating: item.rating,
       likes: item.likes,
