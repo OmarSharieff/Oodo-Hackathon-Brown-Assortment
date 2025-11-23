@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASE_URL="https://78af770a0ec4.ngrok-free.app/api"
+BASE_URL="https://fd3c5c40b3fe.ngrok-free.app/api"
 
 echo "🧪 Testing Events API..."
 echo ""

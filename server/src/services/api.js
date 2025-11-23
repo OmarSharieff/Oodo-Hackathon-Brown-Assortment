@@ -3,7 +3,7 @@ import axios from 'axios';
 // REPLACE THIS WITH YOUR COMPUTER'S LOCAL IP ADDRESS
 // On Mac/Linux: run `ifconfig` in terminal
 // On Windows: run `ipconfig` in cmd
-const API_URL = 'https://78af770a0ec4.ngrok-free.app/api/v1'; 
+const API_URL = 'https://fd3c5c40b3fe.ngrok-free.app/api/v1'; 
 
 const api = axios.create({
     baseURL: API_URL,
