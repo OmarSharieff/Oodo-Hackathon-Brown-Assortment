@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { supabase } from "../lib/supabase"; // <-- correct path
 
-export default function Profile() {
+export default function ProfileScreen() {
   const [userData, setUserData] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
 
@@ -117,10 +117,22 @@ export default function Profile() {
               <Text style={styles.postDescription}>{post.description}</Text>
 
               {/* Post Info: Likes & Rating */}
-              <View style={styles.postInfoRow}>
-                <Text style={styles.postLikes}>❤️ {post.likes}</Text>
-                <Text style={styles.postRating}>⭐ {post.rating}</Text>
-              </View>
+                <View style={styles.postInfoRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Image
+                      source={require('../assets/heart.png')}
+                      style={styles.heart}
+                    />
+                    <Text style={{ marginLeft: 4 }}>{post.rating}</Text>
+                  </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Image
+                      source={require('../assets/star_pressed.png')}
+                      style={styles.star}
+                    />
+                    <Text style={{ marginLeft: 4 }}>{post.likes}</Text>
+                </View>
+                </View>
 
               {/* Post Date */}
               <Text style={styles.postDate}>
@@ -215,14 +227,30 @@ const styles = StyleSheet.create({
   },
 
   postCard: {
-    width: "90%",
-    backgroundColor: "#fafafa",
-    padding: 15,
-    borderRadius: 12,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#eee",
+     width: "90%",
+      backgroundColor: '#fff',
+      overflow: 'hidden',
+      borderWidth: .2,  
+      borderColor: '#ccc', 
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      padding: 13,
+      marginHorizontal: 12, 
+      marginBottom: 10, 
   },
+
+    star: {
+  width: 20,
+  height: 20,
+  marginRight: 2,
+},
+  heart: {
+  height: 15,
+  width: 15,
+  resizeMode: 'contain', 
+},
 
   postImage: {
     width: "100%",
