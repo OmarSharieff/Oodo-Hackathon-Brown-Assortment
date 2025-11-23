@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet, Modal, Press
 import NavigationBar from '../components/navigationBar';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-const API_BASE_URL = 'http://10.0.2.2:3000/api';
+const API_BASE_URL = 'https://78af770a0ec4.ngrok-free.app/api';
 const POSTS_API_URL = `${API_BASE_URL}/posts`;
 //    ### post:
 // - image

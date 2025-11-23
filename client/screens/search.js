@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 // import NavigationBar from '../components/navigationBar'; // Commented out if unused in snippet
 import LeafletMapView from '../components/LeafletMapView';
 
-const API_URL = 'http://10.0.2.2:3000';
+const API_URL = 'https://78af770a0ec4.ngrok-free.app';
 const { width, height } = Dimensions.get('window');
 
 export default function SearchScreen({ navigation }) {
