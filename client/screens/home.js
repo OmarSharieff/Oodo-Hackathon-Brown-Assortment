@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet, Modal, Pressable, ActivityIndicator } from 'react-native';import { SafeAreaView } from 'react-native-safe-area-context';
 import NavigationBar from '../components/navigationBar';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 const API_BASE_URL = 'http://10.0.2.2:3000/api';
 const POSTS_API_URL = `${API_BASE_URL}/posts`;
 //    ### post:
@@ -152,94 +153,160 @@ export default function HomeScreen({ navigation }) {
 
   const CURRENT_USER_ID = user.id; 
 
-  // Function to fetch posts from the backend
+//   // Function to fetch posts from the backend
+// const fetchPosts = async () => {
+//   setLoading(true);
+//   setError(null);
+//   try {
+//     // 1. Fetch data from your new API endpoint
+//     const response = await fetch(`${POSTS_API_URL}?page=1&limit=20`);
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
+//     const json = await response.json();
+    
+//     // 2. Map the backend data structure to your frontend structure
+//     const fetchedPosts = json.data.map(item => ({
+//       id: String(item.id),
+//       // Use joined data from Supabase: user:users(name) and location
+//       user_id: item.user.name, 
+//       location: `${item.location.latitude}, ${item.location.longitude}`, 
+//       // KEY CHANGE: Only set image if image_url exists, otherwise leave it undefined/null
+//       image: item.image_url || null, // Don't use the require() fallback here
+//       rating: item.rating,
+//       likes: item.likes,
+//       description: item.description,
+//       // For simplicity, we assume no previous like state, always start unliked for now.
+//       // In a real app, the backend query should check if CURRENT_USER_ID has liked the post.
+//       liked: false, 
+//     }));
+
+//     setPosts(fetchedPosts);
+//   } catch (e) {
+//     console.error('Fetch error:', e);
+//     setError('Could not load posts. Check server connection.');
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+//   // Function to handle liking/unliking
+//   const toggleLike = async (id) => {
+//     const post = posts.find(p => p.id === id);
+//     if (!post) return;
+
+//     // 1. Optimistic UI Update
+//     const newLikedStatus = !post.liked;
+//     const newLikesCount = post.likes + (newLikedStatus ? 1 : -1);
+    
+//     // Update local state first
+//     setPosts(prevPosts =>
+//         prevPosts.map(p =>
+//             p.id === id
+//                 ? { ...p, liked: newLikedStatus, likes: newLikesCount }
+//                 : p
+//         )
+//     );
+
+//     // 2. API Call to update the backend
+//     try {
+//         const response = await fetch(`${POSTS_API_URL}/${id}/likes`, {
+//             method: 'PATCH', 
+//             headers: {
+//                 'Content-Type': 'application/json',
+//             },
+//             body: JSON.stringify({ 
+//                 likes: newLikesCount // Send the new calculated count
+//                 // In a real app, you would also send the user_id for tracking
+//             }),
+//         });
+
+//         if (!response.ok) {
+//             throw new Error('Failed to update like status on server.');
+//         }
+        
+//         // No further action needed if successful
+
+//     } catch (e) {
+//         console.error('API Error during like:', e);
+
+//         // 3. Revert on failure (undo the optimistic update)
+//         setPosts(prevPosts =>
+//             prevPosts.map(p =>
+//                 p.id === id
+//                     ? { ...p, liked: post.liked, likes: post.likes } // Revert to original values
+//                     : p
+//             )
+//         );
+//         alert('Failed to update like. Please check your connection.');
+//     }
+//   };
+
+// Function to fetch posts directly from Supabase
 const fetchPosts = async () => {
   setLoading(true);
   setError(null);
   try {
-    // 1. Fetch data from your new API endpoint
-    const response = await fetch(`${POSTS_API_URL}?page=1&limit=20`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const json = await response.json();
-    
-    // 2. Map the backend data structure to your frontend structure
-    const fetchedPosts = json.data.map(item => ({
+    const { data, error } = await supabase
+      .from("posts")
+      .select("*")
+
+    if (error) throw error;
+
+    const fetchedPosts = data.map(item => ({
       id: String(item.id),
-      // Use joined data from Supabase: user:users(name) and location
-      user_id: item.user.name, 
-      location: `${item.location.latitude}, ${item.location.longitude}`, 
-      // KEY CHANGE: Only set image if image_url exists, otherwise leave it undefined/null
-      image: item.image_url || null, // Don't use the require() fallback here
+      user_id: item.user?.name || "Unknown",
+      location: item.location
+        ? `${item.location.latitude}, ${item.location.longitude}`
+        : "Unknown",
+      image: item.image_url || null,
       rating: item.rating,
       likes: item.likes,
       description: item.description,
-      // For simplicity, we assume no previous like state, always start unliked for now.
-      // In a real app, the backend query should check if CURRENT_USER_ID has liked the post.
-      liked: false, 
+      liked: false,
     }));
 
     setPosts(fetchedPosts);
   } catch (e) {
-    console.error('Fetch error:', e);
-    setError('Could not load posts. Check server connection.');
+    console.error("Supabase fetch error:", e);
+    setError("Could not load posts. Check Supabase connection.");
   } finally {
     setLoading(false);
   }
 };
 
-  // Function to handle liking/unliking
-  const toggleLike = async (id) => {
-    const post = posts.find(p => p.id === id);
-    if (!post) return;
+const toggleLike = async (id) => {
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
 
-    // 1. Optimistic UI Update
-    const newLikedStatus = !post.liked;
-    const newLikesCount = post.likes + (newLikedStatus ? 1 : -1);
-    
-    // Update local state first
+  const newLikedStatus = !post.liked;
+  const newLikesCount = post.likes + (newLikedStatus ? 1 : -1);
+
+  setPosts(prevPosts =>
+    prevPosts.map(p =>
+      p.id === id ? { ...p, liked: newLikedStatus, likes: newLikesCount } : p
+    )
+  );
+
+  try {
+    const { error } = await supabase
+      .from("posts")
+      .update({ likes: newLikesCount })
+      .eq("id", id);
+
+    if (error) throw error;
+  } catch (e) {
+    console.error("Supabase like update error:", e);
+
+    // Revert on failure
     setPosts(prevPosts =>
-        prevPosts.map(p =>
-            p.id === id
-                ? { ...p, liked: newLikedStatus, likes: newLikesCount }
-                : p
-        )
+      prevPosts.map(p =>
+        p.id === id ? { ...p, liked: post.liked, likes: post.likes } : p
+      )
     );
-
-    // 2. API Call to update the backend
-    try {
-        const response = await fetch(`${POSTS_API_URL}/${id}/likes`, {
-            method: 'PATCH', 
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                likes: newLikesCount // Send the new calculated count
-                // In a real app, you would also send the user_id for tracking
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to update like status on server.');
-        }
-        
-        // No further action needed if successful
-
-    } catch (e) {
-        console.error('API Error during like:', e);
-
-        // 3. Revert on failure (undo the optimistic update)
-        setPosts(prevPosts =>
-            prevPosts.map(p =>
-                p.id === id
-                    ? { ...p, liked: post.liked, likes: post.likes } // Revert to original values
-                    : p
-            )
-        );
-        alert('Failed to update like. Please check your connection.');
-    }
-  };
+    alert("Failed to update like. Please check your connection.");
+  }
+};
 
   // Run fetchPosts once when the component mounts
   useEffect(() => {
