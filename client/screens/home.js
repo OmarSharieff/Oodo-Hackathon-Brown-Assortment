@@ -69,7 +69,7 @@ const PostCard = ({ item, onPress, style, expanded = false, onToggleLike }) => (
       {/* ... (PostHeader and other views are the same) ... */}
       <View style={styles.postHeader}>
         <View style={styles.leftGroup}>
-          <Image source={require('../assets/pissbaby.png')} style={styles.userImg} />
+          <Image source={require('../assets/userImg.png')} style={styles.userImg} />
           <View style={styles.headerInfo}>
             <Text style={styles.username}>{item.user_id}</Text>
             <View style={styles.locationContainer}>

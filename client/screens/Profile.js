@@ -16,7 +16,7 @@ export default function ProfileScreen() {
   const [userData, setUserData] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
 
-  const defaultProfileImage = require("../assets/stock_image.png");
+  const defaultProfileImage = require('../assets/userImg.png') ;
   const settingsIcon = require("../assets/settings.png");
 
   const pissYellow = "#f4d171";
