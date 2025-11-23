@@ -1,16 +1,9 @@
 {
   "dependencies": {
-<<<<<<< HEAD
-    "@supabase/supabase-js": "^2.84.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0"
-  },
-  "devDependencies": {
-    "concurrently": "^9.2.1",
-    "nodemon": "^3.1.11"
-=======
-    "react-native-vector-icons": "^10.3.0"
->>>>>>> 8518ba774f5cfb9a82b0ed8f6a8b5361eef876da
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-navigation/native": "^7.1.21",
+    "@react-navigation/native-stack": "^7.7.0",
+    "encoding": "^0.1.13",
+    "iconv-lite": "^0.7.0"
   }
 }

@@ -1,6 +1,7 @@
 import {
   addReview,
-  getPosts
+  getPosts,
+  updatePostLikes
 } from '../db/queries.js';
 
 // ADD REVIEW (automatically creates location if needed)
@@ -49,6 +50,34 @@ export async function handleAddReview(req, res) {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to add review'
+    });
+  }
+}
+
+export async function handleUpdatePostLikes(req, res) {
+  try {
+    const { post_id } = req.params;
+    const { likes } = req.body; // Expecting the *new* total likes count from frontend
+
+    if (typeof likes !== 'number' || likes < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Likes count must be a non-negative number'
+      });
+    }
+
+    const updatedPost = await updatePostLikes(post_id, likes);
+
+    res.status(200).json({
+      success: true,
+      message: 'Post likes updated successfully',
+      data: updatedPost
+    });
+  } catch (error) {
+    console.error('Update likes error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update likes'
     });
   }
 }

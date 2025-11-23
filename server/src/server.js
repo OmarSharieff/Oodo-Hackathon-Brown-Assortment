@@ -5,6 +5,7 @@ import userRoutes from './routes/user.routes.js';
 import postRoutes from './routes/post.routes.js';
 import locationRoutes from './routes/location.routes.js';
 import eventRoutes from './routes/event.routes.js';
+import mapillaryRoutes from './routes/mapillary.routes.js';
 
 
 const app = express();
@@ -25,6 +26,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/mapillary', mapillaryRoutes);
 
 // 404 handler
 app.use((req, res) => {

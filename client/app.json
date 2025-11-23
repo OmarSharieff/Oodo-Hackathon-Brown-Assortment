@@ -12,9 +12,12 @@
       "fallbackToCacheTimeout": 0
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.clientapp"
     },
-    "android": {},
+    "android": {
+      "package": "com.anonymous.clientapp"
+    },
     "web": {}
   }
 }

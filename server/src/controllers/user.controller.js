@@ -1,3 +1,5 @@
+// controllers/user.controller.js
+import supabase from '../db/index.js';
 import {
   signUp,
   login,
@@ -12,11 +14,17 @@ export async function handleSignUp(req, res) {
   try {
     const { email, password, name } = req.body;
 
-    // Validation
     if (!email || !password || !name) {
       return res.status(400).json({
         success: false,
         message: 'Email, password, and name are required'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters'
       });
     }
 
@@ -26,16 +34,26 @@ export async function handleSignUp(req, res) {
       success: true,
       message: 'User created successfully',
       data: {
-        auth_id: user.id,
+        id: user.id,
         db_user_id: user.db_user_id,
-        email: user.email
+        email: user.email,
+        name: name
       }
     });
   } catch (error) {
     console.error('Signup error:', error);
+    
+    // Handle duplicate email error
+    if (error.message.includes('duplicate') || error.message.includes('already exists')) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email already exists'
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to sign up'
+      message: error.message || 'Failed to create user'
     });
   }
 }
@@ -45,7 +63,6 @@ export async function handleLogin(req, res) {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -53,21 +70,41 @@ export async function handleLogin(req, res) {
       });
     }
 
-    const user = await login(email, password);
+    const authUser = await login(email, password);
+
+    // Get the database user ID from the users table
+    // Supabase auth returns the auth user, but we need to get the DB user
+    const { data: dbUser, error: dbError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (dbError) throw dbError;
 
     res.status(200).json({
       success: true,
       message: 'Login successful',
       data: {
-        auth_id: user.id,
-        email: user.email
+        id: authUser.id,
+        db_user_id: dbUser.id,
+        email: authUser.email
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(401).json({
+    
+    // Handle invalid credentials
+    if (error.message.includes('Invalid') || error.message.includes('credentials')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    res.status(500).json({
       success: false,
-      message: error.message || 'Invalid credentials'
+      message: error.message || 'Failed to login'
     });
   }
 }
@@ -77,14 +114,14 @@ export async function handleGetUser(req, res) {
   try {
     const { user_id } = req.params;
 
-    const user = await getUserById(user_id);
-
-    if (!user) {
-      return res.status(404).json({
+    if (!user_id) {
+      return res.status(400).json({
         success: false,
-        message: 'User not found'
+        message: 'User ID is required'
       });
     }
+
+    const user = await getUserById(parseInt(user_id));
 
     res.status(200).json({
       success: true,
@@ -92,9 +129,9 @@ export async function handleGetUser(req, res) {
     });
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(500).json({
+    res.status(404).json({
       success: false,
-      message: error.message || 'Failed to get user'
+      message: error.message || 'User not found'
     });
   }
 }
@@ -105,15 +142,13 @@ export async function handleAddFriend(req, res) {
     const { user_id } = req.params;
     const { friend_id } = req.body;
 
-    // Validation
-    if (!friend_id) {
+    if (!user_id || !friend_id) {
       return res.status(400).json({
         success: false,
-        message: 'friend_id is required'
+        message: 'User ID and friend ID are required'
       });
     }
 
-    // Prevent self-friending
     if (user_id === friend_id) {
       return res.status(400).json({
         success: false,
@@ -121,7 +156,10 @@ export async function handleAddFriend(req, res) {
       });
     }
 
-    const friendship = await addFriend(user_id, friend_id);
+    const friendship = await addFriend(
+      parseInt(user_id),
+      parseInt(friend_id)
+    );
 
     res.status(201).json({
       success: true,
@@ -130,6 +168,14 @@ export async function handleAddFriend(req, res) {
     });
   } catch (error) {
     console.error('Add friend error:', error);
+    
+    if (error.message.includes('duplicate') || error.message.includes('already exists')) {
+      return res.status(409).json({
+        success: false,
+        message: 'Friendship already exists'
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to add friend'
@@ -142,7 +188,14 @@ export async function handleRemoveFriend(req, res) {
   try {
     const { user_id, friend_id } = req.params;
 
-    await removeFriend(user_id, friend_id);
+    if (!user_id || !friend_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and friend ID are required'
+      });
+    }
+
+    await removeFriend(parseInt(user_id), parseInt(friend_id));
 
     res.status(200).json({
       success: true,
@@ -157,14 +210,20 @@ export async function handleRemoveFriend(req, res) {
   }
 }
 
-// GET FRIENDS (PAGINATED)
+// GET FRIENDS
 export async function handleGetFriends(req, res) {
   try {
     const { user_id } = req.params;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
 
-    // Validation
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
     if (page < 1 || limit < 1) {
       return res.status(400).json({
         success: false,
@@ -172,7 +231,14 @@ export async function handleGetFriends(req, res) {
       });
     }
 
-    const friends = await getFriends(user_id, page, limit);
+    if (limit > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Limit cannot exceed 100'
+      });
+    }
+
+    const friends = await getFriends(parseInt(user_id), page, limit);
 
     res.status(200).json({
       success: true,
