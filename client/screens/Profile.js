@@ -88,7 +88,7 @@ export default function ProfileScreen() {
           <Text style={styles.scoreLabel}>PissScore</Text>
           <View style={styles.scoreCircle}>
             <Text style={styles.scoreNumber}>
-              {userData ? userData.score : "-"}
+              3
             </Text>
           </View>
         </View>
