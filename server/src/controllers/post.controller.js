@@ -8,6 +8,16 @@ import supabase from '../db/index.js';
 // ADD REVIEW with image upload support
 export async function handleAddReview(req, res) {
   try {
+    console.log('📝 Received review request');
+    console.log('Body:', req.body);
+    console.log('Has file:', !!req.file);
+    if (req.file) {
+      console.log('File details:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+    }
     const { user_id, description, rating, latitude, longitude } = req.body;
 
     if (!user_id || !latitude || !longitude) {
@@ -42,7 +52,7 @@ export async function handleAddReview(req, res) {
 
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('review-images')
+          .from('images')
           .upload(filePath, req.file.buffer, {
             contentType: req.file.mimetype,
             cacheControl: '3600',
@@ -53,7 +63,7 @@ export async function handleAddReview(req, res) {
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-          .from('review-images')
+          .from('images')
           .getPublicUrl(filePath);
 
         image_url = publicUrl;

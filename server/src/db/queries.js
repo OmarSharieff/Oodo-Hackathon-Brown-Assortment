@@ -915,7 +915,7 @@ export async function uploadReviewImage(uri, userId) {
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('review-images')
+      .from('images')
       .upload(filePath, blob, {
         contentType: 'image/jpeg',
         cacheControl: '3600',
@@ -926,7 +926,7 @@ export async function uploadReviewImage(uri, userId) {
 
     // Get the public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('review-images')
+      .from('images')
       .getPublicUrl(filePath);
 
     return {
@@ -943,7 +943,7 @@ export async function uploadReviewImage(uri, userId) {
 export async function deleteReviewImage(filePath) {
   try {
     const { error } = await supabase.storage
-      .from('review-images')
+      .from('images')
       .remove([filePath]);
 
     if (error) throw error;
