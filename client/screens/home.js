@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet, Modal, Pressable, ActivityIndicator } from 'react-native';import { SafeAreaView } from 'react-native-safe-area-context';
 import NavigationBar from '../components/navigationBar';
 import { useAuth } from '../contexts/AuthContext';
-const API_BASE_URL = 'https://a66c310b8089.ngrok-free.app/api';
+const API_BASE_URL = 'http://10.0.2.2:3000/api';
 const POSTS_API_URL = `${API_BASE_URL}/posts`;
 //    ### post:
 // - image

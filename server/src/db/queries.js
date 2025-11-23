@@ -1,5 +1,6 @@
 import supabase from "./index.js";
 import { getBoundingBox, filterLocationsByDistance } from "../utils/geoUtils.js";
+import { getRandomMapboxImage } from '../services/mapboxService.js';
 
 /* =========================================================
    USERS / AUTH
@@ -246,6 +247,18 @@ export async function getPosts(page = 1, limit = 10) {
 
   if (error) throw error;
 
+  return data;
+}
+
+export async function updatePostLikes(post_id, new_likes_count) {
+  const { data, error } = await supabase
+    .from("posts")
+    .update({ likes: new_likes_count })
+    .eq("id", post_id)
+    .select("likes") // Select the updated likes count back
+    .single();
+
+  if (error) throw error;
   return data;
 }
 
@@ -607,4 +620,280 @@ export async function deleteEvent(event_id, user_id) {
 
   if (error) throw error;
   return true;
+}
+
+/* =========================================================
+   LOCATIONS WITH MAPILLARY INTEGRATION
+========================================================= */
+
+// ADD LOCATION WITH MAPILLARY DATA
+export async function addLocationWithMapillary({ 
+  latitude, 
+  longitude, 
+  halal = false, 
+  crowded = false, 
+  hotspot = false,
+  near_greenery = false,
+  fetchMapillary = true
+}) {
+  let mapillaryData = {};
+
+  // Fetch Mapillary image if requested
+  if (fetchMapillary) {
+    try {
+      const mapillaryImage = await getRandomMapboxImage(
+        parseFloat(latitude), 
+        parseFloat(longitude), 
+        0.1 // 100m radius
+      );
+
+      if (mapillaryImage) {
+        mapillaryData = {
+          mapillary_image_id: mapillaryImage.id,
+          mapillary_image_url: mapillaryImage.thumb_1024_url,
+          mapillary_thumb_url: mapillaryImage.thumb_256_url,
+          mapillary_captured_at: mapillaryImage.captured_at,
+          mapillary_compass_angle: mapillaryImage.compass_angle
+        };
+      }
+    } catch (error) {
+      console.error('Failed to fetch Mapillary data:', error);
+      // Continue without Mapillary data
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("locations")
+    .insert({
+      latitude,
+      longitude,
+      halal,
+      crowded,
+      hotspot,
+      near_greenery,
+      ...mapillaryData
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// UPDATE LOCATION WITH MAPILLARY DATA
+export async function updateLocationMapillary(location_id, latitude, longitude) {
+  try {
+    const mapillaryImage = await getRandomMapboxImage(
+      parseFloat(latitude), 
+      parseFloat(longitude), 
+      0.1
+    );
+
+    if (!mapillaryImage) {
+      throw new Error('No Mapillary images found nearby');
+    }
+
+    const { data, error } = await supabase
+      .from("locations")
+      .update({
+        mapillary_image_id: mapillaryImage.id,
+        mapillary_image_url: mapillaryImage.thumb_1024_url,
+        mapillary_thumb_url: mapillaryImage.thumb_256_url,
+        mapillary_captured_at: mapillaryImage.captured_at,
+        mapillary_compass_angle: mapillaryImage.compass_angle
+      })
+      .eq("id", location_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating Mapillary data:', error);
+    throw error;
+  }
+}
+
+// GET NEARBY LOCATIONS WITH MAPILLARY DATA
+export async function getNearbyLocationsWithMapillary(
+  latitude, 
+  longitude, 
+  radiusKm = 5, 
+  limit = 20, 
+  filters = {}
+) {
+  const bbox = getBoundingBox(latitude, longitude, radiusKm);
+  
+  let query = supabase
+    .from("locations")
+    .select(`
+      *,
+      mapillary_image_id,
+      mapillary_image_url,
+      mapillary_thumb_url,
+      mapillary_captured_at,
+      mapillary_compass_angle
+    `)
+    .gte("latitude", bbox.minLat.toString())
+    .lte("latitude", bbox.maxLat.toString())
+    .gte("longitude", bbox.minLon.toString())
+    .lte("longitude", bbox.maxLon.toString());
+
+  // Apply filters
+  if (filters.near_greenery !== undefined) {
+    query = query.eq("near_greenery", filters.near_greenery);
+  }
+  if (filters.halal !== undefined) {
+    query = query.eq("halal", filters.halal);
+  }
+  if (filters.crowded !== undefined) {
+    query = query.eq("crowded", filters.crowded);
+  }
+  if (filters.hotspot !== undefined) {
+    query = query.eq("hotspot", filters.hotspot);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  const nearbyLocations = filterLocationsByDistance(
+    data,
+    latitude,
+    longitude,
+    radiusKm
+  );
+
+  return nearbyLocations.slice(0, limit);
+}
+
+// BATCH UPDATE MAPILLARY FOR EXISTING LOCATIONS (utility function)
+export async function batchUpdateMapillaryForLocations(limit = 10) {
+  // Get locations without Mapillary data
+  const { data: locations, error } = await supabase
+    .from("locations")
+    .select("id, latitude, longitude")
+    .is("mapillary_image_id", null)
+    .limit(limit);
+
+  if (error) throw error;
+
+  const results = [];
+  for (const location of locations) {
+    try {
+      const updated = await updateLocationMapillary(
+        location.id,
+        location.latitude,
+        location.longitude
+      );
+      results.push({ success: true, location_id: location.id });
+    } catch (err) {
+      results.push({ 
+        success: false, 
+        location_id: location.id, 
+        error: err.message 
+      });
+    }
+  }
+
+  return results;
+}
+
+/* =========================================================
+   MAPILLARY CACHE WITH BACKGROUND REFRESH
+========================================================= */
+
+// Get cached Mapillary locations with age check
+export async function getCachedMapillaryLocations(latitude, longitude, radiusKm = 2, limit = 50) {
+  const bbox = getBoundingBox(latitude, longitude, radiusKm);
+  
+  const { data, error } = await supabase
+    .from("locations")
+    .select("*")
+    .not("mapillary_image_id", "is", null)
+    .gte("latitude", bbox.minLat.toString())
+    .lte("latitude", bbox.maxLat.toString())
+    .gte("longitude", bbox.minLon.toString())
+    .lte("longitude", bbox.maxLon.toString());
+
+  if (error) throw error;
+
+  const nearbyLocations = filterLocationsByDistance(
+    data,
+    latitude,
+    longitude,
+    radiusKm
+  );
+
+  return nearbyLocations.slice(0, limit);
+}
+
+// Check if cached data is stale (older than 1 hour)
+export function isCacheStale(locations, maxAgeMinutes = 60) {
+  if (!locations || locations.length === 0) return true;
+  
+  const now = new Date();
+  const staleThreshold = new Date(now.getTime() - maxAgeMinutes * 60 * 1000);
+  
+  // Check if ANY location is older than threshold
+  // If so, we should refresh
+  const hasStaleData = locations.some(loc => {
+    const createdAt = new Date(loc.created_at);
+    return createdAt < staleThreshold;
+  });
+  
+  return hasStaleData;
+}
+
+
+// Background refresh: Update stale Mapbox cache
+export async function refreshMapboxCacheInBackground(latitude, longitude, radiusKm = 2) {
+  try {
+    console.log('🔄 Background refresh started for Mapbox cache...');
+    
+    const { getNearbyMapboxImages } = await import('../services/mapboxService.js');
+    
+    const images = await getNearbyMapboxImages(latitude, longitude, radiusKm);
+    
+    if (images.length > 0) {
+      await saveMapboxLocations(images);
+      console.log(`✅ Background refresh complete: ${images.length} locations updated`);
+    } else {
+      console.log('ℹ️ Background refresh: No new images found');
+    }
+  } catch (error) {
+    console.error('⚠️ Background refresh failed:', error.message);
+  }
+}
+
+// Rename saveMapillaryLocations to saveMapboxLocations
+export async function saveMapboxLocations(mapboxImages) {
+  const locationsToInsert = mapboxImages.map(img => ({
+    latitude: img.geometry.coordinates[1],
+    longitude: img.geometry.coordinates[0],
+    mapillary_image_id: img.id, // Reuse same column
+    mapillary_image_url: img.thumb_1024_url,
+    mapillary_thumb_url: img.thumb_256_url,
+    mapillary_captured_at: img.captured_at,
+    mapillary_compass_angle: img.compass_angle,
+    halal: false,
+    crowded: false,
+    hotspot: false,
+    near_greenery: false,
+  }));
+
+  const { data, error } = await supabase
+    .from("locations")
+    .upsert(locationsToInsert, {
+      onConflict: 'mapillary_image_id',
+      ignoreDuplicates: false
+    })
+    .select();
+
+  if (error) {
+    console.error('Error saving Mapbox locations:', error);
+    throw error;
+  }
+
+  return data;
 }

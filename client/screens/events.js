@@ -14,7 +14,7 @@ import {
   ActivityIndicator 
 } from 'react-native';
 
-const API_BASE_URL = 'https://a66c310b8089.ngrok-free.app/api';
+const API_BASE_URL = 'http://10.0.2.2:3000/api';
 const EVENTS_API_URL = `${API_BASE_URL}/events`;
 
 
